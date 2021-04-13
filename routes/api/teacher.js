@@ -88,6 +88,42 @@ router.get("/", async (req, res) => {
 });
 
 //@POST Route
+//@DESC Login Teacher
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const teacher = await Teacher.findOne({ email });
+    if (!teacher) {
+      return res.json({ msg: "Teacher Doesnt Exists" });
+    }
+    const isMatch = await bcrypt.compare(password, teacher.password);
+    if (!isMatch) {
+      return res.json({ msg: "Invalid Credentials!" });
+    }
+    const payload = {
+      teacher: {
+        id: teacher.id,
+      },
+    };
+    jwt.sign(
+      payload,
+      process.env.jwtSecret,
+      { expiresIn: 500 },
+      (err, token) => {
+        if (err) throw err;
+        res.json({
+          msg: "Teacher Logged in Successfully",
+          teacher: teacher,
+          token: token,
+        });
+      }
+    );
+  } catch (error) {
+    console.log(error.message);
+  }
+});
+
+//@POST Route
 //@DESC Singup Teacher
 router.post("/signup", async (req, res) => {
   const { name, email, password, department, insititute } = req.body;
