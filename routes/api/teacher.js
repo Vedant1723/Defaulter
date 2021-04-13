@@ -55,7 +55,7 @@ router.post(
       if (name) userFields.name = name;
       if (email) userFields.email = email;
       if (req.file) {
-        userFields.photo = `http://${req.headers.host}/uploads/${req.file.filename}`;
+        userFields.photo = `${req.protocol}://${req.headers.host}/uploads/${req.file.filename}`;
       }
       var user = await Teacher.findById(req.teacher.id);
       if (!user) {
