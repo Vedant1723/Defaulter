@@ -82,7 +82,7 @@ router.get("/getDefaulty/:id", async (req, res) => {
 
 //@GET Route
 //@DESC Get Student By ID
-router.get("/details/:  SstudentID", async (req, res) => {
+router.get("/details/:studentID", async (req, res) => {
   try {
     const student = await Student.findById(req.params.studentID);
     if (!student) {
