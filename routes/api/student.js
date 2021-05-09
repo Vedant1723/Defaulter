@@ -8,6 +8,8 @@ const Teacher = require("../../models/Teacher");
 const Otp = require("../../models/Otp");
 const teacherAuth = require("../../middleware/teacherAuth");
 const Defaulter = require("../../models/Defaulter");
+const adminAuth = require("../../middleware/adminAuth");
+const Admin = require("../../models/Admin");
 sgMail.setApiKey(
   "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"
 );
@@ -18,7 +20,10 @@ router.get("/", teacherAuth, async (req, res) => {
   try {
     const teacher = await Teacher.findOne({ _id: req.teacher.id });
 
-    const student = await Student.find({ department: teacher.department });
+    const student = await Student.find({
+      department: teacher.department,
+      institute: teacher.institute,
+    });
     if (student.length == 0) {
       return res.status(400).json({ msg: "no Student is found!!" });
     }
@@ -30,23 +35,16 @@ router.get("/", teacherAuth, async (req, res) => {
 
 //@POST Route
 //@DESC Create Student
-router.post("/create", async (req, res) => {
-  console.log(req.body);
-  const {
-    name,
-    email,
-    rollNo,
-    department,
-    parentsDetails,
-    institute,
-  } = req.body;
+router.post("/create", adminAuth, async (req, res) => {
+  const { name, email, rollNo, department, parentsDetails } = req.body;
   var studentFileds = {};
   try {
     if (name) studentFileds.name = name;
     if (email) studentFileds.email = email;
     if (rollNo) studentFileds.rollNo = rollNo;
     if (department) studentFileds.department = department;
-    if (institute) studentFileds.institute = institute;
+    var admin = await Admin.findById(req.admin.id);
+    studentFileds.institute = admin.institute;
     if (parentsDetails) studentFileds.parentsDetails = parentsDetails;
     var student = await Student.findOne({ email });
     if (student) {

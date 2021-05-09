@@ -10,6 +10,13 @@ const Defaulter = require("../../models/Defaulter");
 const Student = require("../../models/Student");
 const multer = require("multer");
 const path = require("path");
+const looksSame = require("looks-same");
+const fs = require("fs");
+const PNG = require("pngjs").PNG;
+const pixelMatch = require("pixelmatch");
+const adminAuth = require("../../middleware/adminAuth");
+const Admin = require("../../models/Admin");
+// var sampleImage = require("../../uploads/1617944906134_Photo_.jpg");
 sgMail.setApiKey(
   "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"
 );
@@ -123,16 +130,37 @@ router.post("/login", async (req, res) => {
   }
 });
 
+//@TEST Route
+//@DESC TO Compare the Images
+router.post("/test", upload.single("file"), async (req, res) => {
+  console.log(req.file);
+  try {
+    looksSame(
+      "https://i.ibb.co/dJT43Mc/user.png",
+      req.file.path,
+      (error, { equal }) => {
+        if (error) {
+          return res.json({ error });
+        }
+        if (equal) {
+          return res.json({ msg: "Images Are Equal" });
+        }
+      }
+    );
+  } catch (error) {}
+});
+
 //@POST Route
 //@DESC Singup Teacher
-router.post("/signup", async (req, res) => {
-  const { name, email, password, department, insititute } = req.body;
+router.post("/signup", adminAuth, async (req, res) => {
+  const { name, email, password, department } = req.body;
   var teacherFields = {};
   try {
+    var admin = await Admin.findById(req.admin.id);
+    teacherFields.institute = admin.institute;
     if (name) teacherFields.name = name;
     if (email) teacherFields.email = email;
     if (password) teacherFields.password = password;
-    if (insititute) teacherFields.insititute = insititute;
     if (department) teacherFields.department = department;
     var teacher = await Teacher.findOne({ email });
     if (teacher) {

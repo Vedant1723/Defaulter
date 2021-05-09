@@ -6,6 +6,8 @@ require("dotenv").config();
 const sgMail = require("@sendgrid/mail");
 const Otp = require("../../models/Otp");
 const Teacher = require("../../models/Teacher");
+const adminAuth = require("../../middleware/adminAuth");
+const Student = require("../../models/Student");
 sgMail.setApiKey(
   "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"
 );
@@ -66,46 +68,35 @@ router.post("/signup", async (req, res) => {
 
 //@POST Route
 //@DESC Admin Login
-router.post("/sendOTP", async (req, res) => {
-  const { email } = req.body;
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
   try {
     const admin = await Admin.findOne({ email });
     if (!admin) {
       return res.status(400).json({ msg: "Admin Doesnt Exists!" });
     }
-    var digits = "0123456789";
-    var OTP = "";
-    for (var i = 0; i < 4; i++) {
-      OTP += digits[Math.floor(Math.random() * 10)];
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      return res.json({ msg: "Invalid Credentials!" });
     }
-    let otp = new Otp({
-      userID: admin.id,
-      otp: OTP,
-    });
-    otp.save((err) => {
-      if (err) {
-        return res.status(500).json({ msg: err.message });
-      }
-      const msg = {
-        to: admin.email + "",
-        from: "sachin1081999@gmail.com",
-        subject: "Verification Mail",
-        text: "and easy to do anywhere, even with Node.js",
-        html:
-          "<strong>Your OTP is " +
-          OTP +
-          " and it is valid for 15 mins from now!</strong>",
-      };
-      sgMail
-        .send(msg)
-        .then(() => {
-          console.log("Email sent", msg);
-          res.json({ msg: "Email SENT" });
-        })
-        .catch((error) => {
-          console.error(error);
+    const payload = {
+      admin: {
+        id: admin.id,
+      },
+    };
+    jwt.sign(
+      payload,
+      process.env.jwtSecret,
+      { expiresIn: 3600000000000 },
+      (err, token) => {
+        if (err) throw err;
+        res.json({
+          msg: "Admin Logged in Successfully",
+          admin: admin,
+          token: token,
         });
-    });
+      }
+    );
   } catch (error) {
     console.log(error.message);
   }
@@ -149,6 +140,30 @@ router.post("/confirmOTP", async (req, res) => {
         }
       );
     }
+  } catch (error) {
+    console.log(error.message);
+  }
+});
+
+// @GET Route
+// @DESC get all teachers of Admin's institute
+router.get("/teachers", adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    const teachers = await Teacher.find({ institute: admin.institute });
+    res.json(teachers);
+  } catch (error) {
+    console.log(error.message);
+  }
+});
+
+// @GET Route
+// @DESC Get all Students of Admin's Institute
+router.get("/students", adminAuth, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin.id);
+    const students = await Student.find({ institute: admin.institute });
+    res.json(students);
   } catch (error) {
     console.log(error.message);
   }
